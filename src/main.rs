@@ -208,7 +208,8 @@ struct GameData {
 impl GameData {
     pub fn new() -> Self {
         let mut tile_map = TileMap::new(10,10);
-        tile_map.carve(1,1,9,9);
+        tile_map.carve(1,1,4,4);
+        tile_map.carve(5,5,9,9);
 
         let mut player = Player::new();
         player.random_location(&tile_map);
@@ -226,9 +227,35 @@ impl GameData {
     }
 }
 
+fn get_particle_contact_point(angle: f32, particle_position: &Vec2, tile_map: &TileMap) -> Vec2 {
+    const STEP_SIZE: f32 = 0.1;
+    let mut particle_position = particle_position.clone();
+    while tile_map.is_tile_empty(particle_position.y as usize, particle_position.x as usize) {
+        particle_position.x += angle.cos() * STEP_SIZE;
+        particle_position.y += angle.sin() * STEP_SIZE;
+    }
+    particle_position
+}
+
+fn cast_rays(player_position: &Vec2, tile_map: &TileMap) {
+    for angle in (0..360).step_by(5) {
+        let rad_angle = angle as f32 / 360.0 * 2.0 * PI;
+        let contact_point = get_particle_contact_point(rad_angle, &player_position, &tile_map);
+
+        draw_line(
+            player_position.x * LOGICAL_TO_PHYSICAL_SIZE,
+            player_position.y * LOGICAL_TO_PHYSICAL_SIZE,
+            contact_point.x * LOGICAL_TO_PHYSICAL_SIZE,
+            contact_point.y * LOGICAL_TO_PHYSICAL_SIZE,
+            1.0,
+            WHITE
+        );
+    }
+}
+
 #[macroquad::main("Katzenstein")]
 async fn main() {
-    let game_data = GameData::new(); // TODO global resources system
+    let game_data = GameData::new(); // TODO global resource system
 
     let mut player = game_data.player;
     let tile_map = game_data.tile_map;
@@ -237,8 +264,9 @@ async fn main() {
     loop {
         clear_background(BLACK);
         tile_map.draw_map();
-        handle_movement_input(&mut player,&tile_map,&key_bindings);
+        handle_movement_input(&mut player, &tile_map, &key_bindings);
         player.draw();
+        cast_rays(&player.position, &tile_map);
 
         next_frame().await
     }
