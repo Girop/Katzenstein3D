@@ -1,6 +1,9 @@
 use macroquad::{prelude::*, rand::gen_range};
 use std::f32::consts::PI;
 use std::collections::HashMap;
+use map::*;
+
+mod map;
 
 const TILE_SIZE: f32 = 1.0;
 const LOGICAL_TO_PHYSICAL_SIZE: f32 = 50.0;
@@ -18,137 +21,6 @@ trait DrawToMinimap {
             size.y * MINIMAP_SCALE,
             color,
         );
-    }
-}
-
-struct Tile {
-    pub value: i8,
-    pub size: Vec2,
-    position: Vec2,
-}
-
-impl DrawToMinimap for Tile {
-    fn minimap_draw(&self, color: Color) {
-        if self.value == 0 {
-            return;
-        }
-        <Tile as DrawToMinimap>::draw_rect(self.position, self.size, color);
-    }
-}
-
-impl Tile {
-    pub fn new(value: i8, position: Vec2) -> Self {
-        let size = Vec2::splat(TILE_SIZE);
-        Self {
-            value,
-            position,
-            size,
-        }
-    }
-}
-
-struct TileMap {
-    pub tiles: Vec<Vec<Tile>>,
-    pub width: usize,
-    pub height: usize,
-}
-
-impl TileMap {
-    pub fn new_filled(width: usize, height: usize) -> Self {
-        let mut tiles: Vec<Vec<Tile>> = Vec::new();
-        for row in 0..height {
-            let mut row_vec: Vec<Tile> = Vec::new();
-            for column in 0..width {
-                row_vec.push(Tile::new(1, Vec2::new(row as f32, column as f32)));
-            }
-            tiles.push(row_vec);
-        }
-        Self {
-            tiles,
-            width,
-            height,
-        }
-    }
-
-    pub fn minimap_draw(&self) {
-        for row in self.tiles.iter() {
-            for value in row.iter() {
-                value.minimap_draw(WHITE);
-            }
-        }
-    }
-
-    pub fn by_hand() -> Self {
-        let tile_temp = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 3, 3, 3, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-
-        let mut tile_map: Vec<Vec<Tile>> = Vec::new();
-        for (row_index, row) in tile_temp.iter().enumerate() {
-            let mut row_vec: Vec<Tile> = Vec::new();
-            for (column, value) in row.iter().enumerate() {
-                row_vec.push(Tile::new(
-                    *value,
-                    Vec2::new(row_index as f32, column as f32),
-                ));
-            }
-            tile_map.push(row_vec);
-        }
-
-        Self {
-            tiles: tile_map,
-            width: 10,
-            height: 10,
-        }
-    }
-
-    fn carve(
-        &mut self,
-        start_x: usize,
-        start_y: usize,
-        end_x: usize,
-        end_y: usize,
-    ) -> Option<bool> {
-        if !(self.is_index_in_range(start_y, start_x) && self.is_index_in_range(end_y, end_x)) {
-            return None;
-        }
-
-        for row_index in start_x..end_x {
-            for column_index in start_y..end_y {
-                self.tiles[row_index][column_index].value = 0;
-            }
-        }
-        Some(true)
-    }
-
-    pub fn is_tile_empty(&self, column_index: usize, row_index: usize) -> bool {
-        if self.get_tile_value(column_index, row_index) == 0 {
-            return true;
-        }
-        false
-    }
-
-    fn get_tile_value(&self, column_index: usize, row_index: usize) -> i8 {
-        if !self.is_index_in_range(column_index, row_index) {
-            panic!("Incorrect index"); // TODO
-        }
-        self.tiles[row_index][column_index].value
-    }
-
-    fn is_index_in_range(&self, column_index: usize, row_index: usize) -> bool {
-        if column_index > self.width && row_index > self.height {
-            return false;
-        }
-        true
     }
 }
 
@@ -174,6 +46,7 @@ impl Player {
     }
 
     pub fn random_location(&mut self, tile_map: &TileMap) {
+        // FIXME broken random generator
         let mut start_x: usize;
         let mut start_y: usize;
 
@@ -272,11 +145,7 @@ impl GameData {
             (KeyCode::Q, Action::RotateLeft),
         ]);
 
-        Self {
-            key_bindings,
-            tile_map,
-            player,
-        }
+        Self { key_bindings, tile_map, player }
     }
 }
 
@@ -304,19 +173,28 @@ impl ContactPoint {
 }
 
 fn get_particle_contact_point(
-    particle_position: &Vec2,
+    player: &Player,
     angle: f32,
     tile_map: &TileMap,
 ) -> ContactPoint {
     const DISTANCE_STEP: f32 = 0.05;
-    let mut particle_position = particle_position.clone();
+    let mut particle_position = player.position;
     let mut counter: u32 = 0;
     let mut value = 0;
+    
+    let horizontal_fov = 2.0 * (player.fov * PI / 180.0).tan();
+    let right_x = horizontal_fov * angle.cos();
+    let right_y = horizontal_fov * angle.sin();
+    
     while tile_map.is_tile_empty(particle_position.y as usize, particle_position.x as usize) {
-        if counter % 2 == 0 {
-            particle_position.x += angle.cos() * DISTANCE_STEP;
-        } else {
-            particle_position.y += angle.sin() * DISTANCE_STEP;
+        match counter % 2 {
+            0 => {
+                particle_position.x += angle.cos() * DISTANCE_STEP ; 
+            },
+            1 => {
+                particle_position.y += angle.sin() * DISTANCE_STEP;
+            },
+            _ => ()
         }
         value = tile_map.get_tile_value(particle_position.y as usize, particle_position.x as usize);
         counter += 1;
@@ -331,28 +209,23 @@ fn get_particle_contact_point(
 }
 
 fn get_particles_in_view(player: &Player, tile_map: &TileMap) -> Vec<ContactPoint> {
-    const ANGLE_STEP: f32 = 0.01;
-    let start_angle = player.rotation - player.fov / 2.0;
-    let end_angle = player.rotation + player.fov / 2.0;
+    const ANGLE_STEP: f32 = 0.002;
+    let mut particles: Vec<ContactPoint> = Vec::new();
 
-    let mut current_angle = start_angle;
+    let mut current_angle = player.rotation - player.fov / 2.0;
+    let end_angle = player.rotation + player.fov / 2.0; 
 
-    let mut angles: Vec<f32> = Vec::new();
-    while current_angle < end_angle {
-        angles.push(current_angle);
+    while current_angle < end_angle { 
+        particles.push(get_particle_contact_point(&player, current_angle, &tile_map));
         current_angle += ANGLE_STEP;
-    }
-
-    angles
-        .iter()
-        .map(|angle| get_particle_contact_point(&player.position, *angle, &tile_map))
-        .collect()
+    } 
+    particles
 }
 
 fn get_tile_color(value: i8, plane: ContactPlane) -> Color {
     match (value,plane) { 
-        (0,_) => Color::new(0.0,0.0,0.0,0.0),
-
+        (0,_) => WHITE,
+        
         (1, ContactPlane::Vertical) => Color::from_rgba(255, 0, 0, 255),
         (1, ContactPlane::Horizontal) => Color::from_rgba(193, 0, 0, 255),
 
@@ -380,17 +253,16 @@ fn draw_minimap_rays_in_view(player: &Player, tile_map: &TileMap) {
 }
 
 fn draw_walls(player: &Player, tile_map: &TileMap) {
-    // FIXME black stripe on right
-    let particles = get_particles_in_view(&player, &tile_map);
-    let particle_count = particles.len() as f32;
-    let rect_width = (particle_count / screen_width()) * LOGICAL_TO_PHYSICAL_SIZE;
+    let particles = get_particles_in_view(&player, &tile_map); 
+    let wall_width = particles.len() as f32 / screen_width() * LOGICAL_TO_PHYSICAL_SIZE;
 
     for (index, particle) in particles.iter().enumerate() {
+        let wall_height = screen_height() / particle.point.distance(player.position);
         draw_rectangle(
-            index as f32 * rect_width,
-            0.0,
-            rect_width,
-            screen_height(),
+            index as f32 * wall_width,
+            wall_height / 4.0,
+            wall_width ,
+            wall_height,
             get_tile_color(particle.value, particle.plane),
         );
     }
@@ -417,9 +289,18 @@ fn scene(tile_map: &TileMap, player: &Player) {
     draw_walls(&player, &tile_map);
 }
 
-#[macroquad::main("Katzenstein")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Katzenstein".to_owned(),
+        sample_count: 2,
+        fullscreen: true,
+        ..Default::default() 
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
-    let game_data = GameData::new(); // TODO global resource system
+    let game_data = GameData::new();
     let mut player = game_data.player;
     let tile_map = game_data.tile_map;
     let key_bindings = game_data.key_bindings;
@@ -430,7 +311,6 @@ async fn main() {
         handle_movement_input(&mut player, &tile_map, &key_bindings);
         scene(&tile_map, &player);
         minimap(&tile_map, &player);
-
         next_frame().await
     }
 }
