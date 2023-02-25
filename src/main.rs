@@ -131,7 +131,9 @@ struct GameData {
 
 impl GameData {
     pub fn new() -> Self {
-        let tile_map = TileMap::by_hand();
+        let tile_map = TileMap::from_hand();
+        // let tile_map = TileMap::new(100, 100);
+        // tile_map.generate(10);
 
         let mut player = Player::new();
         player.random_location(&tile_map);
@@ -260,9 +262,8 @@ fn draw_walls(player: &Player, tile_map: &TileMap) {
     let wall_width = particles.len() as f32 / screen_width() * LOGICAL_TO_PHYSICAL_SIZE;
 
     for (index, particle) in particles.iter().enumerate() {
-
         let euclidean_distance = particle.point.distance(player.position);
-        // potential more visible fish eye effect,
+        // potential fish eye effect, visible more with textures
         // maybe use distance perpendicular to camera plane
         let wall_height = screen_height() / euclidean_distance; 
 
