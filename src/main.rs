@@ -171,6 +171,27 @@ impl ContactPoint {
         }
     }
 }
+fn get_particles_in_view(player: &Player, tile_map: &TileMap) -> Vec<ContactPoint> {
+    angles_in_fov(&player)
+        .into_iter()
+        .map(|angle| get_particle_contact_point(&player, angle, &tile_map))
+        .collect()
+}
+
+fn angles_in_fov(player: &Player) -> Vec<f32> {
+    // TODO fix resoultion problem
+    const ANGLE_STEP: f32 = 0.005;
+    let mut angles: Vec<f32> = Vec::new();
+    let mut current_angle = player.rotation - player.fov / 2.0;
+    let end_angle = player.rotation + player.fov / 2.0;
+
+    while current_angle < end_angle {
+        angles.push(current_angle);
+        current_angle += ANGLE_STEP;
+    }
+    angles
+}
+
 
 fn get_particle_contact_point(
     player: &Player,
@@ -181,15 +202,11 @@ fn get_particle_contact_point(
     let mut particle_position = player.position;
     let mut counter: u32 = 0;
     let mut value = 0;
-    
-    let horizontal_fov = 2.0 * (player.fov * PI / 180.0).tan();
-    let right_x = horizontal_fov * angle.cos();
-    let right_y = horizontal_fov * angle.sin();
-    
+       
     while tile_map.is_tile_empty(particle_position.y as usize, particle_position.x as usize) {
         match counter % 2 {
             0 => {
-                particle_position.x += angle.cos() * DISTANCE_STEP ; 
+                particle_position.x += angle.cos() * DISTANCE_STEP; 
             },
             1 => {
                 particle_position.y += angle.sin() * DISTANCE_STEP;
@@ -206,20 +223,6 @@ fn get_particle_contact_point(
         _ => panic!("Unkown dimension"),
     };
     ContactPoint::new(particle_position, plane, value)
-}
-
-fn get_particles_in_view(player: &Player, tile_map: &TileMap) -> Vec<ContactPoint> {
-    const ANGLE_STEP: f32 = 0.002;
-    let mut particles: Vec<ContactPoint> = Vec::new();
-
-    let mut current_angle = player.rotation - player.fov / 2.0;
-    let end_angle = player.rotation + player.fov / 2.0; 
-
-    while current_angle < end_angle { 
-        particles.push(get_particle_contact_point(&player, current_angle, &tile_map));
-        current_angle += ANGLE_STEP;
-    } 
-    particles
 }
 
 fn get_tile_color(value: i8, plane: ContactPlane) -> Color {
@@ -257,10 +260,15 @@ fn draw_walls(player: &Player, tile_map: &TileMap) {
     let wall_width = particles.len() as f32 / screen_width() * LOGICAL_TO_PHYSICAL_SIZE;
 
     for (index, particle) in particles.iter().enumerate() {
-        let wall_height = screen_height() / particle.point.distance(player.position);
+
+        let euclidean_distance = particle.point.distance(player.position);
+        // potential more visible fish eye effect,
+        // maybe use distance perpendicular to camera plane
+        let wall_height = screen_height() / euclidean_distance; 
+
         draw_rectangle(
             index as f32 * wall_width,
-            wall_height / 4.0,
+            screen_height() / 2.0 - wall_height / 2.0,
             wall_width ,
             wall_height,
             get_tile_color(particle.value, particle.plane),
@@ -291,7 +299,7 @@ fn scene(tile_map: &TileMap, player: &Player) {
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Katzenstein".to_owned(),
+        window_title: "Katzenstein".to_string(),
         sample_count: 2,
         fullscreen: true,
         ..Default::default() 
