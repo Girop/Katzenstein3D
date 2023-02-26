@@ -28,10 +28,10 @@ impl Player {
 
     pub fn random_location(&mut self, tile_map: &TileMap) {
         loop { 
-            let start_x = thread_rng().gen_range(0..tile_map.width);
             let start_y = thread_rng().gen_range(0..tile_map.height);
+            let start_x = thread_rng().gen_range(0..tile_map.width);
 
-            if tile_map.is_tile_empty(start_x, start_y) {
+            if tile_map.is_tile_empty(start_y, start_x) {
                 self.position = Vec2::new(start_x as f32, start_y as f32);
                 return;
             }

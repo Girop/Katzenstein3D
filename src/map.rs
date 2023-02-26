@@ -29,6 +29,19 @@ impl Tile {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TilePosition {
+    pub y: usize,
+    pub x: usize
+}
+
+impl TilePosition {
+    pub fn new(y:usize, x:usize) -> Self {
+        Self { y, x }
+    }
+}
+
+
 pub struct TileMap {
     pub tiles: Vec<Vec<Tile>>,
     pub width: usize,
@@ -36,10 +49,9 @@ pub struct TileMap {
 }
 
 impl TileMap {
-
     pub fn new(width: usize, height: usize) -> Self {
         let mut tiles: Vec<Vec<Tile>> = Vec::new();
-        
+
         for row_index in 0..height {
             let mut row_vec: Vec<Tile> = Vec::new();
             for column_index in 0..width {
@@ -47,78 +59,51 @@ impl TileMap {
             }
             tiles.push(row_vec);
         }
-
         Self { tiles, width, height }
     }
 
     pub fn generate(&mut self, room_count: u32) {
-        let mut room_positions: Vec<[usize;2]> = Vec::new();
+        let mut room_centers: Vec<TilePosition> = Vec::new();
 
         let normal = Normal::new(10.0, 2.0).unwrap(); 
         for _ in 0..room_count {
             let room_size = thread_rng().sample(normal) as usize;
-            let position_x = thread_rng().gen_range(0..(self.width - room_size));
             let position_y = thread_rng().gen_range(0..(self.height - room_size));
+            let position_x = thread_rng().gen_range(0..(self.width - room_size));
 
-            let position = [position_y,position_x];
+            let position = TilePosition::new(position_y,position_x);
+            let size = TilePosition::new(room_size, room_size);
             
-            self.carve_room(position, [room_size,room_size]);
-            room_positions.push(position);
+            self.carve_room(position, size);
+            room_centers.push(TilePosition::new(position_y + room_size / 2, position_x + room_size / 2));
         }
-
-        println!("here");
-
-        // for (x1,x2) in room_positions.iter().zip(room_positions.iter().skip(1)) {
-        //     self.connect_rooms(*x1,*x2)
-        // }
+ 
+        for (x1,x2) in room_centers.iter().zip(room_centers.iter().skip(1)) {
+            self.connect_rooms(*x1,*x2);
+        }
     }
 
-    fn carve_room(&mut self, position: [usize;2], size: [usize;2]) {
-        for y in position[0]..(size[0] + position[0]) {
-            for x in position[1]..(size[1] + position[1]) {
+    fn carve_room(&mut self, position: TilePosition, size: TilePosition) {
+        for y in position.y..(size.y + position.y) {
+            for x in position.x..(size.x + position.x) {
                 self.tiles[y][x].value = 0;
             }
         }
     }
 
-    fn connect_rooms(&mut self, center1: [usize;2], center2: [usize;2]) {
-        let x_distance = center1[0] as isize - center2[0] as isize;
-        let y_distance = center1[1] as isize - center2[1] as isize;
-        
-        self.carve_room(center1, [1, center1[1] + x_distance as usize]);
-        self.carve_room(center1, [center1[0] + y_distance as usize, 1]);
-    }
+    fn connect_rooms(&mut self, center1: TilePosition, center2: TilePosition) { 
+        let direction = |pos1, pos2| (pos2 as isize - pos1 as isize).signum();
 
-    pub fn from_hand() -> Self {
-        let tile_temp = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 3, 3, 3, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        ];
-
-        let mut tile_map: Vec<Vec<Tile>> = Vec::new();
-        for (row_index, row) in tile_temp.iter().enumerate() {
-            let mut row_vec: Vec<Tile> = Vec::new();
-            for (column, value) in row.iter().enumerate() {
-                row_vec.push(Tile::new(
-                    *value,
-                    Vec2::new(row_index as f32, column as f32),
-                ));
-            }
-            tile_map.push(row_vec);
+        let mut current_x = center1.x;
+        while direction(current_x, center2.x) != 0 { 
+            current_x = (current_x as isize + direction(current_x, center2.x)) as usize;
+            self.tiles[center1.y][current_x].value = 0;
         }
-
-        Self {
-            tiles: tile_map,
-            width: 10,
-            height: 10,
+        
+        let mut current_y = center1.y;
+        while direction(current_y,center2.y) != 0 { 
+            current_y = (current_y as isize + direction(current_y,center2.y)) as usize;
+            self.tiles[current_y][current_x].value = 0;
         }
     }
 

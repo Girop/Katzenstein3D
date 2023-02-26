@@ -1,9 +1,11 @@
-use macroquad::{prelude::*, rand::gen_range};
+use macroquad::prelude::*;
 use std::f32::consts::PI;
 use std::collections::HashMap;
-use map::*;
+use map::TileMap;
+use player::Player;
 
 mod map;
+mod player;
 
 const TILE_SIZE: f32 = 1.0;
 const LOGICAL_TO_PHYSICAL_SIZE: f32 = 50.0;
@@ -21,44 +23,6 @@ trait DrawToMinimap {
             size.y * MINIMAP_SCALE,
             color,
         );
-    }
-}
-
-struct Player {
-    pub position: Vec2,
-    pub rotation: f32,
-    pub fov: f32,
-}
-
-impl DrawToMinimap for Player {
-    fn minimap_draw(&self, color: Color) {
-        <Self as DrawToMinimap>::draw_rect(self.position, Vec2::splat(0.1), color);
-    }
-}
-
-impl Player {
-    pub fn new() -> Self {
-        Self {
-            position: Vec2::new(0.0, 0.0),
-            rotation: PI * (3.0 / 2.0),
-            fov: 2.0 * PI * (60.0 / 360.0),
-        }
-    }
-
-    pub fn random_location(&mut self, tile_map: &TileMap) {
-        // FIXME broken random generator
-        let mut start_x: usize;
-        let mut start_y: usize;
-
-        loop {
-            start_x = gen_range(0, tile_map.width);
-            start_y = gen_range(0, tile_map.height);
-
-            if tile_map.is_tile_empty(start_x, start_y) {
-                break;
-            }
-        }
-        self.position = Vec2::new(start_x as f32, start_y as f32);
     }
 }
 
@@ -131,9 +95,8 @@ struct GameData {
 
 impl GameData {
     pub fn new() -> Self {
-        let tile_map = TileMap::from_hand();
-        // let tile_map = TileMap::new(100, 100);
-        // tile_map.generate(10);
+        let mut tile_map = TileMap::new(50, 50);
+        tile_map.generate(5);
 
         let mut player = Player::new();
         player.random_location(&tile_map);
@@ -316,7 +279,6 @@ async fn main() {
 
     loop {
         clear_background(BLACK);
-
         handle_movement_input(&mut player, &tile_map, &key_bindings);
         scene(&tile_map, &player);
         minimap(&tile_map, &player);
