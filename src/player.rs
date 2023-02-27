@@ -1,9 +1,10 @@
-use ::rand::{thread_rng, Rng};
 use macroquad::prelude::*;
 use std::f32::consts::PI;
+use std::ops::Mul;
+use ::rand::{thread_rng, Rng};
 
 use crate::map::TileMap;
-use crate::renderer::DrawToMinimap;
+use crate::renderer::MinimapObject;
 
 pub struct Player {
     pub position: Vec2,
@@ -11,9 +12,17 @@ pub struct Player {
     pub fov: f32,
 }
 
-impl DrawToMinimap for Player {
-    fn minimap_draw(&self, color: Color) {
-        <Self as DrawToMinimap>::draw_rect(self.position, Vec2::splat(0.1), color);
+impl MinimapObject for Player {
+    fn world_position(&self) -> Vec2 {
+        self.position
+    }
+
+    fn world_size(&self) -> Vec2 {
+        Vec2::new(0.1, 0.1)
+    }
+
+    fn minimap_color(&self) -> Color {
+        RED
     }
 }
 
@@ -36,5 +45,12 @@ impl Player {
                 return;
             }
         }
+    }
+
+    pub fn rotate_around(&self, position: Vec2) -> Vec2 {
+        let (sin,cos) = self.rotation.sin_cos();
+        let new_x = position.x * cos - position.y * sin;
+        let new_y = position.x * sin + position.y * cos;
+        Vec2::new(new_x, new_y)
     }
 }
