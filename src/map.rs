@@ -1,6 +1,6 @@
-use macroquad::prelude::*;
-use crate::{DrawToMinimap,TILE_SIZE};
+use crate::renderer::{DrawToMinimap,TILE_SIZE};
 use ::rand::{thread_rng, Rng};
+use macroquad::prelude::*;
 use rand_distr::Normal;
 
 pub struct Tile {
@@ -32,15 +32,14 @@ impl Tile {
 #[derive(Debug, Clone, Copy)]
 struct TilePosition {
     pub y: usize,
-    pub x: usize
+    pub x: usize,
 }
 
 impl TilePosition {
-    pub fn new(y:usize, x:usize) -> Self {
+    pub fn new(y: usize, x: usize) -> Self {
         Self { y, x }
     }
 }
-
 
 pub struct TileMap {
     pub tiles: Vec<Vec<Tile>>,
@@ -55,31 +54,41 @@ impl TileMap {
         for row_index in 0..height {
             let mut row_vec: Vec<Tile> = Vec::new();
             for column_index in 0..width {
-                row_vec.push(Tile::new(1, Vec2::new(row_index as f32, column_index as f32)));
+                row_vec.push(Tile::new(
+                    1,
+                    Vec2::new(row_index as f32, column_index as f32),
+                ));
             }
             tiles.push(row_vec);
         }
-        Self { tiles, width, height }
+        Self {
+            tiles,
+            width,
+            height,
+        }
     }
 
     pub fn generate(&mut self, room_count: u32) {
         let mut room_centers: Vec<TilePosition> = Vec::new();
 
-        let normal = Normal::new(10.0, 2.0).unwrap(); 
+        let normal = Normal::new(10.0, 2.0).unwrap();
         for _ in 0..room_count {
             let room_size = thread_rng().sample(normal) as usize;
             let position_y = thread_rng().gen_range(0..(self.height - room_size));
             let position_x = thread_rng().gen_range(0..(self.width - room_size));
 
-            let position = TilePosition::new(position_y,position_x);
+            let position = TilePosition::new(position_y, position_x);
             let size = TilePosition::new(room_size, room_size);
-            
+
             self.carve_room(position, size);
-            room_centers.push(TilePosition::new(position_y + room_size / 2, position_x + room_size / 2));
+            room_centers.push(TilePosition::new(
+                position_y + room_size / 2,
+                position_x + room_size / 2,
+            ));
         }
- 
-        for (x1,x2) in room_centers.iter().zip(room_centers.iter().skip(1)) {
-            self.connect_rooms(*x1,*x2);
+
+        for (x1, x2) in room_centers.iter().zip(room_centers.iter().skip(1)) {
+            self.connect_rooms(*x1, *x2);
         }
     }
 
@@ -91,18 +100,18 @@ impl TileMap {
         }
     }
 
-    fn connect_rooms(&mut self, center1: TilePosition, center2: TilePosition) { 
+    fn connect_rooms(&mut self, center1: TilePosition, center2: TilePosition) {
         let direction = |pos1, pos2| (pos2 as isize - pos1 as isize).signum();
 
         let mut current_x = center1.x;
-        while direction(current_x, center2.x) != 0 { 
+        while direction(current_x, center2.x) != 0 {
             current_x = (current_x as isize + direction(current_x, center2.x)) as usize;
             self.tiles[center1.y][current_x].value = 0;
         }
-        
+
         let mut current_y = center1.y;
-        while direction(current_y,center2.y) != 0 { 
-            current_y = (current_y as isize + direction(current_y,center2.y)) as usize;
+        while direction(current_y, center2.y) != 0 {
+            current_y = (current_y as isize + direction(current_y, center2.y)) as usize;
             self.tiles[current_y][current_x].value = 0;
         }
     }
@@ -119,7 +128,7 @@ impl TileMap {
         let tile_value = self.get_tile_value(column_index, row_index);
         match tile_value {
             0 => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -130,6 +139,5 @@ impl TileMap {
             }
         }
         1
-    }        
+    }
 }
-

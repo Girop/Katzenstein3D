@@ -1,9 +1,9 @@
+use ::rand::{thread_rng, Rng};
 use macroquad::prelude::*;
 use std::f32::consts::PI;
-use ::rand::{thread_rng, Rng};
 
-use crate::DrawToMinimap;
 use crate::map::TileMap;
+use crate::renderer::DrawToMinimap;
 
 pub struct Player {
     pub position: Vec2,
@@ -27,7 +27,7 @@ impl Player {
     }
 
     pub fn random_location(&mut self, tile_map: &TileMap) {
-        loop { 
+        loop {
             let start_y = thread_rng().gen_range(0..tile_map.height);
             let start_x = thread_rng().gen_range(0..tile_map.width);
 
