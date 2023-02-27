@@ -1,7 +1,9 @@
-use crate::renderer::{DrawToMinimap,TILE_SIZE};
+use crate::{renderer::MinimapObject, raycasting::ContactPlane};
 use ::rand::{thread_rng, Rng};
 use macroquad::prelude::*;
 use rand_distr::Normal;
+
+const TILE_SIZE: f32 = 1.0;
 
 pub struct Tile {
     pub value: i8,
@@ -9,14 +11,21 @@ pub struct Tile {
     position: Vec2,
 }
 
-impl DrawToMinimap for Tile {
-    fn minimap_draw(&self, color: Color) {
-        if self.value == 0 {
-            return;
-        }
-        <Tile as DrawToMinimap>::draw_rect(self.position, self.size, color);
+impl MinimapObject for Tile {
+    fn world_size(&self) -> Vec2 {
+        self.size
+    }
+
+    fn world_position(&self) -> Vec2 {
+        self.position
+    }
+
+
+    fn minimap_color(&self) -> Color {     
+        self.get_color(ContactPlane::Vertical)
     }
 }
+
 
 impl Tile {
     pub fn new(value: i8, position: Vec2) -> Self {
@@ -25,6 +34,22 @@ impl Tile {
             value,
             position,
             size,
+        }
+    }
+    
+    pub fn get_color(&self, plane: ContactPlane) -> Color {
+        match (self.value, plane) {
+            (0, _) => WHITE,
+
+            (1, ContactPlane::Vertical) => Color::from_rgba(255, 0, 0, 255),
+            (1, ContactPlane::Horizontal) => Color::from_rgba(193, 0, 0, 255),
+
+            (2, ContactPlane::Vertical) => Color::from_rgba(0, 255, 0, 255),
+            (2, ContactPlane::Horizontal) => Color::from_rgba(0, 193, 0, 255),
+
+            (3, ContactPlane::Vertical) => Color::from_rgba(0, 0, 255, 255),
+            (3, ContactPlane::Horizontal) => Color::from_rgba(0, 0, 193, 255),
+            _ => {todo!();}
         }
     }
 }
@@ -113,14 +138,6 @@ impl TileMap {
         while direction(current_y, center2.y) != 0 {
             current_y = (current_y as isize + direction(current_y, center2.y)) as usize;
             self.tiles[current_y][current_x].value = 0;
-        }
-    }
-
-    pub fn minimap_draw(&self) {
-        for row in self.tiles.iter() {
-            for value in row.iter() {
-                value.minimap_draw(WHITE);
-            }
         }
     }
 

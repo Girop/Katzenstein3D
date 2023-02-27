@@ -72,21 +72,3 @@ fn get_particle_contact_point(player: &Player, angle: f32, tile_map: &TileMap) -
     };
     ContactPoint::new(particle_position, plane, value)
 }
-
-pub fn get_tile_color(value: i8, plane: ContactPlane) -> Color {
-    match (value, plane) {
-        (0, _) => WHITE,
-
-        (1, ContactPlane::Vertical) => Color::from_rgba(255, 0, 0, 255),
-        (1, ContactPlane::Horizontal) => Color::from_rgba(193, 0, 0, 255),
-
-        (2, ContactPlane::Vertical) => Color::from_rgba(0, 255, 0, 255),
-        (2, ContactPlane::Horizontal) => Color::from_rgba(0, 193, 0, 255),
-
-        (3, ContactPlane::Vertical) => Color::from_rgba(0, 0, 255, 255),
-        (3, ContactPlane::Horizontal) => Color::from_rgba(0, 0, 193, 255),
-        _ => {
-            todo!();
-        }
-    }
-}
