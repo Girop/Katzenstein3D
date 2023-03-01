@@ -29,6 +29,8 @@ impl State {
 
         let minimap = Minimap::new();
 
+        let minimap = Minimap::new();
+
         Self {
             player,
             tile_map,

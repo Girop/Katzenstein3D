@@ -1,9 +1,11 @@
 use macroquad::prelude::*;
 use std::f32::consts::PI;
+use ::rand::{thread_rng, Rng};
 use std::ops::Mul;
 use ::rand::{thread_rng, Rng};
 
 use crate::map::TileMap;
+use crate::renderer::MinimapObject;
 use crate::renderer::MinimapObject;
 
 pub struct Player {
