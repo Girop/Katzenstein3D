@@ -1,4 +1,4 @@
-use crate::{renderer::MinimapObject, raycasting::ContactPlane};
+use crate::raycasting::ContactPlane;
 use ::rand::{thread_rng, Rng};
 use macroquad::prelude::*;
 use rand_distr::Normal;
@@ -11,22 +11,6 @@ pub struct Tile {
     position: Vec2,
 }
 
-impl MinimapObject for Tile {
-    fn world_size(&self) -> Vec2 {
-        self.size
-    }
-
-    fn world_position(&self) -> Vec2 {
-        self.position
-    }
-
-
-    fn minimap_color(&self) -> Color {     
-        self.get_color(ContactPlane::Vertical)
-    }
-}
-
-
 impl Tile {
     pub fn new(value: i8, position: Vec2) -> Self {
         let size = Vec2::splat(TILE_SIZE);
@@ -36,23 +20,25 @@ impl Tile {
             size,
         }
     }
-    
-    pub fn get_color(&self, plane: ContactPlane) -> Color {
-        match (self.value, plane) {
-            (0, _) => WHITE,
+}
 
-            (1, ContactPlane::Vertical) => Color::from_rgba(255, 0, 0, 255),
-            (1, ContactPlane::Horizontal) => Color::from_rgba(193, 0, 0, 255),
+pub fn get_color(value: i8, plane: ContactPlane) -> Color {
+    match (value, plane) {
+        (0, _) => WHITE,
 
-            (2, ContactPlane::Vertical) => Color::from_rgba(0, 255, 0, 255),
-            (2, ContactPlane::Horizontal) => Color::from_rgba(0, 193, 0, 255),
+        (1, ContactPlane::Vertical) => Color::from_rgba(255, 0, 0, 255),
+        (1, ContactPlane::Horizontal) => Color::from_rgba(193, 0, 0, 255),
 
-            (3, ContactPlane::Vertical) => Color::from_rgba(0, 0, 255, 255),
-            (3, ContactPlane::Horizontal) => Color::from_rgba(0, 0, 193, 255),
-            _ => {todo!();}
-        }
+        (2, ContactPlane::Vertical) => Color::from_rgba(0, 255, 0, 255),
+        (2, ContactPlane::Horizontal) => Color::from_rgba(0, 193, 0, 255),
+
+        (3, ContactPlane::Vertical) => Color::from_rgba(0, 0, 255, 255),
+        (3, ContactPlane::Horizontal) => Color::from_rgba(0, 0, 193, 255),
+        _ => {todo!();}
     }
 }
+
+
 
 #[derive(Debug, Clone, Copy)]
 struct TilePosition {

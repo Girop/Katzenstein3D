@@ -2,19 +2,17 @@ use input_handler::InputHandler;
 use macroquad::prelude::*;
 use map::TileMap;
 use player::Player;
-use renderer::{ Minimap, MinimapObject};
+use raycasting::draw_walls;
 
 mod input_handler;
 mod map;
 mod player;
 mod raycasting;
-mod renderer;
 
 struct State {
     player: Player,
     tile_map: TileMap,
     input_handler: InputHandler,
-    minimap: Minimap,
 }
 
 impl State {
@@ -27,25 +25,16 @@ impl State {
 
         let input_handler = InputHandler::new();
 
-        let minimap = Minimap::new();
-
-        let minimap = Minimap::new();
-
         Self {
             player,
             tile_map,
             input_handler,
-            minimap,
         }
     }
 
     pub fn run(&mut self) {
         self.input_handler.handle_keyboard_input(&mut self.player, &self.tile_map);
-        self.minimap.draw_empty();
-        for tile in self.tile_map.tiles.iter().flatten() {
-            self.minimap.update_with(&self.player, tile);
-        }
-        self.minimap.update_with(&self.player, &self.player)
+        draw_walls(&self.player, &self.tile_map);
     }
 }
 

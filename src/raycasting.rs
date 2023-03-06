@@ -1,4 +1,5 @@
 use crate::{Player, TileMap};
+use crate::map::get_color;
 use macroquad::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -72,3 +73,26 @@ fn get_particle_contact_point(player: &Player, angle: f32, tile_map: &TileMap) -
     };
     ContactPoint::new(particle_position, plane, value)
 }
+
+const LOGICAL_TO_PHYSICAL_SIZE: f32 = 50.0;
+
+pub fn draw_walls(player: &Player, tile_map: &TileMap) {
+    let particles = get_particles_in_view(player, tile_map);
+    let wall_width = particles.len() as f32 / screen_width() * LOGICAL_TO_PHYSICAL_SIZE;
+
+    for (index, particle) in particles.iter().enumerate() {
+        let euclidean_distance = particle.point.distance(player.position);
+        // potential fish eye effect, visible more with textures
+        // maybe use distance perpendicular to camera plane
+        let wall_height = screen_height() / euclidean_distance;
+
+        draw_rectangle(
+            index as f32 * wall_width,
+            screen_height() / 2.0 - wall_height / 2.0,
+            wall_width,
+            wall_height,
+            get_color(particle.value, particle.plane),
+        );
+    }
+}
+
