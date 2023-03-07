@@ -33,7 +33,6 @@ pub fn get_particles_in_view(player: &Player, tile_map: &TileMap) -> Vec<Contact
 }
 
 pub fn angles_in_fov(player: &Player) -> Vec<f32> {
-    // TODO fix resoultion problem
     const ANGLE_STEP: f32 = 0.005;
     let mut angles: Vec<f32> = Vec::new();
     let mut current_angle = player.rotation - player.fov / 2.0;
@@ -74,18 +73,17 @@ fn get_particle_contact_point(player: &Player, angle: f32, tile_map: &TileMap) -
     ContactPoint::new(particle_position, plane, value)
 }
 
-const LOGICAL_TO_PHYSICAL_SIZE: f32 = 50.0;
-
 pub fn draw_walls(player: &Player, tile_map: &TileMap) {
     let particles = get_particles_in_view(player, tile_map);
-    let wall_width = particles.len() as f32 / screen_width() * LOGICAL_TO_PHYSICAL_SIZE;
+    let wall_width = particles.len() as f32 / screen_width() * 100.0;
 
     for (index, particle) in particles.iter().enumerate() {
         let euclidean_distance = particle.point.distance(player.position);
         // potential fish eye effect, visible more with textures
         // maybe use distance perpendicular to camera plane
+        //
         let wall_height = screen_height() / euclidean_distance;
-
+        
         draw_rectangle(
             index as f32 * wall_width,
             screen_height() / 2.0 - wall_height / 2.0,
