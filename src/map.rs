@@ -3,20 +3,19 @@ use ::rand::{thread_rng, Rng};
 use macroquad::prelude::*;
 use rand_distr::Normal;
 
-const TILE_SIZE: f32 = 1.0;
 
 pub struct Tile {
     pub value: i8,
     pub size: Vec2,
-    position: Vec2,
 }
 
 impl Tile {
-    pub fn new(value: i8, position: Vec2) -> Self {
-        let size = Vec2::splat(TILE_SIZE);
+    const TILE_SIZE: f32 = 1.0;
+
+    pub fn new(value: i8) -> Self {
+        let size = Vec2::splat(Self::TILE_SIZE);
         Self {
             value,
-            position,
             size,
         }
     }
@@ -62,13 +61,10 @@ impl TileMap {
     pub fn new(width: usize, height: usize) -> Self {
         let mut tiles: Vec<Vec<Tile>> = Vec::new();
 
-        for row_index in 0..height {
+        for _ in 0..height {
             let mut row_vec: Vec<Tile> = Vec::new();
-            for column_index in 0..width {
-                row_vec.push(Tile::new(
-                    1,
-                    Vec2::new(row_index as f32, column_index as f32),
-                ));
+            for _ in 0..width {
+                row_vec.push(Tile::new(1));
             }
             tiles.push(row_vec);
         }
@@ -144,3 +140,4 @@ impl TileMap {
         1
     }
 }
+

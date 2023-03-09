@@ -1,4 +1,4 @@
-use crate::{map::TileMap, player::Player};
+use crate::{map::TileMap, player::Player, GameState};
 use macroquad::prelude::*;
 use std::{collections::HashMap, f32::consts::PI};
 
@@ -10,6 +10,7 @@ enum Action {
     MoveRight,
     RotateLeft,
     RotateRight,
+    PauseGame,
 }
 
 pub struct InputHandler {
@@ -27,6 +28,7 @@ impl InputHandler {
             (KeyCode::D, Action::MoveRight),
             (KeyCode::E, Action::RotateRight),
             (KeyCode::Q, Action::RotateLeft),
+            (KeyCode::Escape, Action::PauseGame),
         ]);
 
         let position_change = 0.05;
@@ -39,7 +41,7 @@ impl InputHandler {
         }
     }
 
-    pub fn handle_keyboard_input(&self, player: &mut Player, tile_map: &TileMap) {
+    pub fn handle_player_input(&self, player: &mut Player, tile_map: &TileMap) {
         let mut new_position = player.position.clone();
         let beta_angle = 2.0 * PI - player.rotation;
 
@@ -66,7 +68,8 @@ impl InputHandler {
                 }
                 Action::RotateRight => {
                     player.rotation += self.rotation_change;
-                }
+                },
+                _ => {}
             };
 
             if tile_map.is_tile_empty(new_position.y as usize, new_position.x as usize) {
@@ -75,11 +78,35 @@ impl InputHandler {
         }
     }
 
+    pub fn handle_global_input(&self, game_state: &mut GameState) {
+        for action in self.get_actions().into_iter() {
+            match action {
+                Action::PauseGame => {
+                        un_pause_game(game_state);
+                    },
+                _ => ()
+            }
+        } 
+    }
+
     fn get_actions(&self) -> Vec<Action> {
         self.key_bindings
             .iter()
             .filter(|(key_code, _)| is_key_down(**key_code))
             .map(|(_key, action)| *action)
             .collect()
+    }
+}
+
+pub fn un_pause_game(game_state: &mut GameState) {
+    match game_state {
+        GameState::Pause => {
+            *game_state = GameState::InGame;    
+        },
+        GameState::InGame => {
+            *game_state = GameState::Pause;
+        }
+        _ => {}
+
     }
 }
